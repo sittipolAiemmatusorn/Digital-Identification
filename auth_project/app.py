@@ -58,54 +58,37 @@ def check_password(password, hashed):
     return bcrypt.checkpw(password.encode('utf-8'), hashed)
 
 def capture_face():
+    print("capture_face() started")
+
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
-        print("Cannot open camera")
+        print("❌ Cannot open camera")
         return None
-
-    print("Press SPACE to capture face")
-
-    frame = None
 
     while True:
         ret, frame = cap.read()
-        if not ret:
+
+        if not ret or frame is None:
+            print("❌ Failed to grab frame")
             continue
 
         cv2.imshow("Capture Face", frame)
-        key = cv2.waitKey(1) & 0xFF
+
+        key = cv2.waitKey(10) & 0xFF
+
+        # SPACE = capture
         if key == 32:
-            break
+            print("📸 Captured!")
+            cap.release()
+            cv2.destroyAllWindows()
+            return frame   # หรือจะ return อะไรก็ได้
 
-    cap.release()
-    cv2.destroyAllWindows()
-
-    if frame is None:
-        return None
-
-    # 🔥 บังคับให้เป็น 8-bit 3 channel จริง ๆ
-    frame = cv2.convertScaleAbs(frame)
-    frame = frame[:, :, :3]  # ตัด alpha channel ถ้ามี
-
-    # แปลงเป็น RGB
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-    # บังคับ dtype
-    rgb_frame = rgb_frame.astype(np.uint8)
-
-    # บังคับ contiguous
-    rgb_frame = np.ascontiguousarray(rgb_frame)
-
-    print("dtype:", rgb_frame.dtype)
-    print("shape:", rgb_frame.shape)
-
-    faces = face_recognition.face_encodings(rgb_frame)
-
-    if len(faces) > 0:
-        return faces[0]
-
-    return None
+        # ESC = cancel
+        elif key == 27:
+            cap.release()
+            cv2.destroyAllWindows()
+            return None
 
 # ---------- ROUTES ----------
 #pip install face_recognition opencv-python numpy
@@ -183,4 +166,4 @@ def logout():
     return redirect("/login")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
